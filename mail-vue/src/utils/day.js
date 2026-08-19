@@ -1,12 +1,13 @@
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
+import 'dayjs/locale/vi'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import {useSettingStore} from "@/store/setting.js";
 const settingStore = useSettingStore();
 dayjs.extend(utc)
 dayjs.extend(timezone)
-dayjs.locale(settingStore.lang === 'en' ? 'en' : 'zh-cn')
+dayjs.locale(settingStore.lang === 'en' ? 'en' : (settingStore.lang === 'vi' ? 'vi' : 'zh-cn'))
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function fromNow(date) {
@@ -33,6 +34,24 @@ export function fromNow(date) {
             ? d.format('MMM D')
             : d.format('YYYY/MM/DD');
 
+
+    } else if (settingStore.lang === 'vi') {
+
+        if (isToday) {
+            if (diffSeconds < 60) return `Vừa xong`;
+            if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+            if (diffHours >= 1 && diffHours < 2) return '1 giờ trước';
+            return d.format('HH:mm');
+        }
+        else if (now.subtract(1, 'day').isSame(d, 'day')) {
+            return `Hôm qua ${d.format('HH:mm')}`;
+        }
+        else if (now.subtract(2, 'day').isSame(d, 'day')) {
+            return `Hôm kia ${d.format('HH:mm')}`;
+        }
+        return d.year() === now.year()
+            ? d.format('D [thg] M')
+            : d.format('DD/MM/YYYY');
 
     } else {
 
@@ -75,6 +94,10 @@ export function formatDetailDate(time) {
         return isSameYear
             ? d.format('ddd, MMM D, h:mm A')
             : d.format('ddd, MMM D, YYYY, h:mm A');
+    } else if (settingStore.lang === 'vi') {
+        return isSameYear
+            ? d.format('ddd, D [thg] M, HH:mm')
+            : d.format('ddd, DD/MM/YYYY, HH:mm');
     } else {
         return d.format('YYYY年M月D日 ddd AH:mm');
     }

@@ -203,6 +203,14 @@ function formatUserCreateTime(regKey) {
       return createTime.format('MMM D, YYYY HH:mm');
     }
 
+  } else if (settingStore.lang === 'vi') {
+
+    if (expireYear === currentYear) {
+      return createTime.format('D [thg] M, HH:mm');
+    } else {
+      return createTime.format('DD/MM/YYYY HH:mm');
+    }
+
   } else {
 
     if (expireYear === currentYear) {
@@ -225,6 +233,12 @@ function formatExpireTime(expireTime) {
     return expireYear === currentYear
         ? expireDate.format('MMM D')
         : expireDate.format('MMM D, YYYY');
+
+  } else if (settingStore.lang === 'vi') {
+
+    return expireYear === currentYear
+        ? expireDate.format('D [thg] M')
+        : expireDate.format('DD/MM/YYYY');
 
   } else {
 

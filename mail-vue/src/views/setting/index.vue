@@ -40,6 +40,7 @@
       >
         <el-option label="中文" value="zh" @pointerdown.prevent.stop="changeLang('zh')"/>
         <el-option label="English" value="en" @pointerdown.prevent.stop="changeLang('en')"/>
+        <el-option label="Tiếng Việt" value="vi" @pointerdown.prevent.stop="changeLang('vi')"/>
       </el-select>
     </div>
     <div class="del-email" v-perm="'my:delete'">
