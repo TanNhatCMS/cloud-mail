@@ -7,14 +7,29 @@ import loginService from "./login-service";
 import cryptoUtils from "../utils/crypto-utils";
 import settingService from "./setting-service";
 import {t} from '../i18n/i18n';
+import jwtUtils from "../utils/jwt-utils";
+
+const BIND_PURPOSE = 'oauth-bind';
+const BIND_TOKEN_EXPIRE = 60 * 10;
 
 const oauthService = {
 
 	async bindUser(c, params) {
 
-		const { email, oauthUserId, platform, code } = params;
+		const { email, bindToken, code } = params;
 
-		const oauthRow = await this.getById(c, oauthUserId, platform);
+		// 只接受第三方登录成功后签发的短期令牌, 不信任客户端传来的 oauthUserId
+		const payload = bindToken ? await jwtUtils.verifyToken(c, bindToken) : null;
+
+		if (!payload || payload.purpose !== BIND_PURPOSE || !payload.oauthId) {
+			throw new BizError(t('authExpired'), 401);
+		}
+
+		const oauthRow = await orm(c).select().from(oauth).where(eq(oauth.oauthId, payload.oauthId)).get();
+
+		if (!oauthRow) {
+			throw new BizError(t('authExpired'), 401);
+		}
 
 		let userRow = await userService.selectByIdIncludeDel(c, oauthRow.userId);
 
@@ -26,7 +41,7 @@ const oauthService = {
 
 		userRow = await userService.selectByEmail(c, email);
 
-		orm(c).update(oauth).set({ userId: userRow.userId }).where(eq(oauth.oauthUserId, oauthUserId)).run();
+		await orm(c).update(oauth).set({ userId: userRow.userId }).where(eq(oauth.oauthId, oauthRow.oauthId)).run();
 		const jwtToken = await loginService.login(c, { email, password: null }, true);
 
 		return { userInfo: oauthRow, token: jwtToken}
@@ -260,7 +275,8 @@ const oauthService = {
 		const userRow = await userService.selectByIdIncludeDel(c, oauthRow.userId);
 
 		if (!userRow) {
-			return { userInfo: oauthRow, token: null };
+			const bindToken = await jwtUtils.generateToken(c, { purpose: BIND_PURPOSE, oauthId: oauthRow.oauthId }, BIND_TOKEN_EXPIRE);
+			return { userInfo: oauthRow, token: null, bindToken };
 		}
 
 		const JwtToken = await loginService.login(c, { email: userRow.email, password: null }, true);
@@ -269,13 +285,13 @@ const oauthService = {
 
 	async saveUser(c, userInfo) {
 
-		const userInfoRow = await this.getById(c, userInfo.oauthUserId, userInfo.platform);
+		// 不同平台的用户ID可能相同, 必须按平台+ID查找
+		const userInfoRow = await this.getByPlatformId(c, userInfo.platform, userInfo.oauthUserId);
 
 		if (!userInfoRow) {
 			return await orm(c).insert(oauth).values(userInfo).returning().get();
 		} else {
-			return await orm(c).update(oauth).set(userInfo)
-				.where(this.oauthUserWhere(userInfo.oauthUserId, userInfo.platform)).returning().get();
+			return await orm(c).update(oauth).set(userInfo).where(eq(oauth.oauthId, userInfoRow.oauthId)).returning().get();
 		}
 
 	},
@@ -294,6 +310,10 @@ const oauthService = {
 	oauthUserWhere(oauthUserId, platform) {
 		const condition = eq(oauth.oauthUserId, oauthUserId);
 		return platform ? and(condition, eq(oauth.platform, platform)) : condition;
+	},
+
+	async getByPlatformId(c, platform, oauthUserId) {
+		return await orm(c).select().from(oauth).where(and(eq(oauth.platform, platform), eq(oauth.oauthUserId, oauthUserId))).get();
 	},
 
 	async deleteByUserId(c, userId) {
