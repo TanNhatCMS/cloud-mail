@@ -1312,6 +1312,10 @@ function loadData() {
     cursor: pointer;
   }
 
+  .reload {
+    margin-left: 2px;
+  }
+
   .more-icon {
     margin-top: 8px;
     margin-left: 15px;

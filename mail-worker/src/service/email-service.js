@@ -30,7 +30,19 @@ const emailService = {
 
 	async list(c, params, userId) {
 
-		let { emailId, type, accountId, size, timeSort, allReceive, full } = params;
+		let {
+			emailId,
+			type,
+			accountId,
+			size,
+			timeSort,
+			allReceive,
+			full,
+			text,
+			searchType,
+			startDate,
+			endDate,
+		} = params;
 
 		size = Number(size);
 		type = Number(type);
@@ -67,8 +79,29 @@ const emailService = {
 			allReceive = accountRow.allReceive;
 		}
 
-		const filters = this.emailListFilters({ userId, accountId, type, allReceive, emailId, timeSort });
-		const countFilters = this.emailListFilters({ userId, accountId, type, allReceive, withCursor: false });
+		const filters = this.emailListFilters({
+			userId,
+			accountId,
+			type,
+			allReceive,
+			emailId,
+			timeSort,
+			text,
+			searchType,
+			startDate,
+			endDate,
+		});
+		const countFilters = this.emailListFilters({
+			userId,
+			accountId,
+			type,
+			allReceive,
+			withCursor: false,
+			text,
+			searchType,
+			startDate,
+			endDate,
+		});
 		const columns = full ? emailListColumns : emailBriefColumns;
 
 		const query = orm(c)
@@ -157,7 +190,19 @@ const emailService = {
 		return list;
 	},
 
-	emailListFilters({ userId, accountId, type, allReceive, emailId, timeSort, withCursor = true }) {
+	emailListFilters({
+		userId,
+		accountId,
+		type,
+		allReceive,
+		emailId,
+		timeSort,
+		withCursor = true,
+		text,
+		searchType,
+		startDate,
+		endDate,
+	}) {
 		const conditions = [
 			eq(email.userId, userId),
 			eq(email.type, type),
@@ -170,6 +215,44 @@ const emailService = {
 		if (withCursor && emailId) {
 			conditions.push(timeSort ? gt(email.emailId, emailId) : lt(email.emailId, emailId));
 		}
+
+		if (text?.trim() && searchType) {
+			const searchText = `%${text.trim()}%`;
+
+			if (searchType === 'subject') {
+				conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${searchText}`);
+			}
+
+			if (searchType === 'content') {
+				conditions.push(
+					or(
+						sql`${email.text} COLLATE NOCASE LIKE ${searchText}`,
+						sql`${email.content} COLLATE NOCASE LIKE ${searchText}`,
+					)
+				);
+			}
+
+			if (searchType === 'sender') {
+				conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${searchText}`);
+			}
+
+			if (searchType === 'senderAddress') {
+				conditions.push(sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`);
+			}
+
+			if (searchType === 'recipientAddress') {
+				conditions.push(sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText}`);
+			}
+		}
+
+		if (startDate) {
+			conditions.push(gte(email.createTime, startDate));
+		}
+
+		if (endDate) {
+			conditions.push(lte(email.createTime, endDate));
+		}
+
 		return conditions;
 	},
 
