@@ -32,7 +32,7 @@ function ensureTranslationSchema(c) {
 				}
 			}
 			try {
-				// 与 init 的 v3_4DB 保持同一份语句：缺权限行时工具栏按钮不显示
+				// 与 init 的 v3_5DB 保持同一份语句：缺权限行时工具栏按钮不显示
 				await c.env.db.prepare(`
 					INSERT INTO perm (name, perm_key, pid, type, sort)
 					SELECT '邮件翻译', 'email:translate', 1, 2, 2

@@ -15,6 +15,6 @@ binding = "kv"
 id = "00000000000000000000000000000001"
 
 [vars]
-domain = ["example.com"]
+domain = "[\"example.com\"]"
 admin = "admin@example.com"
 jwt_secret = "local-test-jwt-secret"

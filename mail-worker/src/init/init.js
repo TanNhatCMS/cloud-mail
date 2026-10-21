@@ -34,8 +34,8 @@ const dbInit = {
 		await this.v3_1DB(c);
 		await this.v3_2DB(c);
 		await this.v3_3DB(c);
-		const failed = await this.v3_4DB(c);
-		await this.v3_5DB(c);
+		await this.v3_4DB(c);
+		const failed = await this.v3_5DB(c);
 		await settingService.refresh(c);
 		if (failed.length > 0) {
 			return c.text('❌ ' + failed.join('; '), 500);
@@ -45,7 +45,7 @@ const dbInit = {
 
 
 	// 返回失败原因而不是静默吞掉：翻译表缺失时接口会 500，运维必须能看到
-	async v3_4DB(c) {
+	async v3_5DB(c) {
 		const errors = [];
 		// 逐条执行：整批 batch 里一条建索引失败会把建表一起回滚，
 		// 留下“权限行在、表不在”的半初始化状态（线上踩过）
@@ -73,7 +73,7 @@ const dbInit = {
 		return errors;
 	},
 
-	async v3_5DB(c) {
+	async v3_4DB(c) {
 		// SyncClipboard 集成（默认关闭）。
 		// 刻意不复用上游「多个 ALTER 放一个 batch + catch 全吞」的写法：只要其中一列已存在，
 		// 整批就会回滚导致剩余缺列永远补不上，而且真实的写库/权限错误会被吞掉。
