@@ -189,13 +189,28 @@ describe('数据库升级：真实异常不被吞', () => {
 	});
 });
 
-describe('在线升级路径 /api/init/:secret', () => {
+describe('在线升级路径 /api/init（表单 POST，PR #611 后不再走 URL 传密钥）', () => {
+
+	const postInit = (secret) => SELF.fetch('http://example.com/api/init', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: 'secret=' + encodeURIComponent(secret)
+	});
 
 	it('密钥不匹配时拒绝执行迁移', async () => {
 		await dropSyncColumns();
 
-		const res = await SELF.fetch('http://example.com/api/init/wrong-secret');
+		const res = await postInit('wrong-secret');
 		expect(await res.text()).toContain('JWT secret mismatch');
+
+		expect(await settingColumnNames(env)).not.toContain('sync_clipboard_status');
+	});
+
+	it('旧的 URL 传密钥方式已被禁用', async () => {
+		await dropSyncColumns();
+
+		const res = await SELF.fetch('http://example.com/api/init/local-test-jwt-secret');
+		expect(res.status).toBe(400);
 
 		expect(await settingColumnNames(env)).not.toContain('sync_clipboard_status');
 	});
@@ -203,8 +218,8 @@ describe('在线升级路径 /api/init/:secret', () => {
 	it('密钥正确时完成迁移并刷新 KV，且默认关闭', async () => {
 		await dropSyncColumns();
 
-		const res = await SELF.fetch('http://example.com/api/init/local-test-jwt-secret');
-		expect(await res.text()).toBe('success');
+		const res = await postInit('local-test-jwt-secret');
+		expect(await res.text()).toContain('✅ success');
 
 		const columns = await settingColumnNames(env);
 		for (const column of SYNC_COLUMNS) {
