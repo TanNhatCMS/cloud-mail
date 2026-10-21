@@ -1,6 +1,7 @@
 import s3Service from './s3-service';
 import settingService from './setting-service';
 import kvObjService from './kv-obj-service';
+import objHeaderUtils from '../utils/obj-header-utils';
 
 const r2Service = {
 
@@ -73,13 +74,11 @@ const r2Service = {
 				if (!obj) {
 					return null;
 				}
-				return new Response(obj.body, {
-					headers: {
-						'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
-						'Content-Disposition': obj.httpMetadata?.contentDisposition || null,
-						'Cache-Control': obj.httpMetadata?.cacheControl || null
-					}
-				});
+				const headers = objHeaderUtils.safeHeaders(obj.httpMetadata?.contentType, obj.httpMetadata?.contentDisposition);
+				if (obj.httpMetadata?.cacheControl) {
+					headers['Cache-Control'] = obj.httpMetadata.cacheControl;
+				}
+				return new Response(obj.body, { headers });
 			}
 
 			if (storageType === 'S3') {

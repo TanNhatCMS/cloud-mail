@@ -1,3 +1,4 @@
+import objHeaderUtils from '../utils/obj-header-utils';
 const kvObjService = {
 
 	async putObj(c, key, content, metadata) {
@@ -23,13 +24,11 @@ const kvObjService = {
 			return null;
 		}
 
-		return new Response(obj.value, {
-			headers: {
-				'Content-Type': obj.metadata?.contentType || 'application/octet-stream',
-				'Content-Disposition': obj.metadata?.contentDisposition || null,
-				'Cache-Control': obj.metadata?.cacheControl || null
-			}
-		});
+		const headers = objHeaderUtils.safeHeaders(obj.metadata?.contentType, obj.metadata?.contentDisposition);
+		if (obj.metadata?.cacheControl) {
+			headers['Cache-Control'] = obj.metadata.cacheControl;
+		}
+		return new Response(obj.value, { headers });
 	},
 
 	async toObjResp(c, key) {
