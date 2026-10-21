@@ -4,7 +4,8 @@ const KvConst = {
 	SEND_DAY_COUNT: 'send_day_count:',
 	ANALYSIS_ECHARTS: 'analysis_echarts:',
 	PUBLIC_KEY: "public_key:",
-	TRANSLATE_RESULT: "translate_result:"
+	TRANSLATE_RESULT: "translate_result:",
+	SYNC_CLIPBOARD_MSG: "sync_clipboard_msg:"
 }
 
 export default KvConst;
