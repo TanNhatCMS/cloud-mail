@@ -24,6 +24,7 @@ import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import constant from '../const/constant';
+import userContext from '../security/user-context';
 
 const emailService = {
 
@@ -963,16 +964,58 @@ const emailService = {
 			.get();
 	},
 
+	async detail(c, params, userId) {
+		let { emailId } = params;
+		emailId = Number(emailId);
+		if (!emailId) {
+			throw new BizError(t(c, 'emptyParam'));
+		}
+
+		let emailRow = await orm(c).select().from(email).where(
+			and(
+				eq(email.emailId, emailId),
+				eq(email.userId, userId),
+				eq(email.isDel, isDel.NORMAL)
+			)
+		).get();
+
+		if (!emailRow) {
+			const user = userContext.getUser(c);
+			if (user && user.userEmail === c.env.admin) {
+				emailRow = await orm(c).select().from(email).where(
+					and(
+						eq(email.emailId, emailId),
+						eq(email.isDel, isDel.NORMAL)
+					)
+				).get();
+			}
+		}
+
+		if (!emailRow) {
+			throw new BizError(t(c, 'emailNotFound') || '郵件不存在');
+		}
+
+		const attList = await attService.selectByEmailIds(c, [emailId]);
+		emailRow.attList = attList || [];
+
+		const starRow = await orm(c).select({ starId: star.starId }).from(star).where(
+			and(eq(star.emailId, emailId), eq(star.userId, userId))
+		).get();
+		emailRow.isStar = starRow ? 1 : 0;
+
+		return emailRow;
+	},
+
 	async latest(c, params, userId) {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
 
 		if (isNaN(allReceive)) {
 			let accountRow = await accountService.selectById(c, accountId);
-			allReceive = accountRow.allReceive;
+			allReceive = accountRow?.allReceive || 0;
 		}
 
-		const list = await orm(c).select({ ...emailListColumns }).from(email)
+		let list = await orm(c).select({ ...emailListColumns }).from(email)
 			.innerJoin(
 				account,
 				eq(account.accountId, email.accountId)

@@ -343,6 +343,7 @@ async function latest() {
 
       for (let email of list) {
 
+        emailStore.detailMap[email.emailId] = email
         sysEmailScroll.value.addItem(email)
         await sleep(50)
 
