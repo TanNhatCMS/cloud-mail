@@ -1,6 +1,6 @@
 import orm from '../entity/orm';
 import regKey from '../entity/reg-key';
-import { inArray, like, eq, desc, sql, or } from 'drizzle-orm';
+import { inArray, like, eq, desc, sql, or, and, gt } from 'drizzle-orm';
 import roleService from './role-service';
 import BizError from '../error/biz-error';
 import { formatDetailDate, toUtc } from '../utils/date-uitil';
@@ -36,7 +36,9 @@ const regKeyService = {
 			throw new BizError(t('roleNotExist'));
 		}
 
-		expireTime = formatDetailDate(expireTime)
+		// 以 Asia/Shanghai 的日历日期为准归一化过期时间：
+		// 管理员在浏览器本地时区选择的日期不应因 Worker(UTC) 解析而提前一天失效
+		expireTime = formatDetailDate(toUtc(expireTime).tz('Asia/Shanghai').startOf('day').utc())
 
 		await orm(c).insert(regKey).values({code,roleId,count,userId,expireTime}).run();
 	},
@@ -86,9 +88,20 @@ const regKeyService = {
 	},
 
 	async reduceCount(c, code, count) {
-		await orm(c).update(regKey).set({
+		// 原子条件扣减：仅当剩余次数大于 0 时才扣减；返回更新后的行，
+		// 未返回行表示兑换码已被并发耗尽，调用方应拒绝注册
+		return await orm(c).update(regKey).set({
 			count: sql`${regKey.count}
 	  -
+	  ${count}`
+		}).where(and(eq(regKey.code, code), gt(regKey.count, 0))).returning().get();
+	},
+
+	async increaseCount(c, code, count) {
+		// 扣减后注册流程失败时回补兑换码次数
+		await orm(c).update(regKey).set({
+			count: sql`${regKey.count}
+	  +
 	  ${count}`
 		}).where(eq(regKey.code, code)).run();
 	},

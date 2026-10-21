@@ -80,69 +80,86 @@ const loginService = {
 			regKeyId = result?.regKeyId
 		}
 
-		const accountRow = await accountService.selectByEmailIncludeDel(c, email);
-
-		if (accountRow && accountRow.isDel === isDel.DELETE) {
-			throw new BizError(t('isDelUser'));
-		}
-
-		if (accountRow) {
-			throw new BizError(t('isRegAccount'));
-		}
-
-		let defType = null
-
-		if (!type) {
-			const roleRow = await roleService.selectDefaultRole(c);
-			defType = roleRow.roleId
-		}
-
-
-		const roleRow = await roleService.selectById(c, type || defType);
-
-		if(!roleService.hasAvailDomainPerm(roleRow.availDomain, email)) {
-
-			if (type) {
-				throw new BizError(t('noDomainPermRegKey'),403)
-			}
-
-			if (defType) {
-				throw new BizError(t('noDomainPermReg'),403)
-			}
-
-		}
-
-		let regVerifyOpen = false
-
-		if (registerVerify === settingConst.registerVerify.OPEN) {
-			regVerifyOpen = true
-			await turnstileService.verify(c,token)
-		}
-
-		if (registerVerify === settingConst.registerVerify.COUNT) {
-			regVerifyOpen = await verifyRecordService.isOpenRegVerify(c, regVerifyCount);
-			if (regVerifyOpen) {
-				await turnstileService.verify(c,token)
-			}
-		}
-
-		const { salt, hash } = await saltHashUtils.hashPassword(password);
-
-		const userId = await userService.insert(c, { email, regKeyId,password: hash, salt, type: type || defType });
-
-		await accountService.insert(c, { userId: userId, email, name: emailUtils.getName(email) });
-
-		await userService.updateUserInfo(c, userId, true);
+		// 原子扣减兑换码次数：先扣减再创建用户，避免并发超用；
+		// 扣减失败（返回空行）说明兑换码已被并发耗尽
+		let regKeyConsumed = false;
 
 		if (regKey !== settingConst.regKey.CLOSE && type) {
-			await regKeyService.reduceCount(c, code, 1);
+			const regKeyRow = await regKeyService.reduceCount(c, code, 1);
+			if (!regKeyRow) {
+				throw new BizError(t('noRegKeyCount'));
+			}
+			regKeyConsumed = true;
 		}
 
-		if (registerVerify === settingConst.registerVerify.COUNT && !regVerifyOpen) {
-			const row = await verifyRecordService.increaseRegCount(c);
-			return {regVerifyOpen: row.count >= regVerifyCount}
-		}
+		try {
+			const accountRow = await accountService.selectByEmailIncludeDel(c, email);
 
+			if (accountRow && accountRow.isDel === isDel.DELETE) {
+				throw new BizError(t('isDelUser'));
+			}
+
+			if (accountRow) {
+				throw new BizError(t('isRegAccount'));
+			}
+
+			let defType = null
+
+			if (!type) {
+				const roleRow = await roleService.selectDefaultRole(c);
+				defType = roleRow.roleId
+			}
+
+
+			const roleRow = await roleService.selectById(c, type || defType);
+
+			if(!roleService.hasAvailDomainPerm(roleRow.availDomain, email)) {
+
+				if (type) {
+					throw new BizError(t('noDomainPermRegKey'),403)
+				}
+
+				if (defType) {
+					throw new BizError(t('noDomainPermReg'),403)
+				}
+
+			}
+
+			let regVerifyOpen = false
+
+			if (registerVerify === settingConst.registerVerify.OPEN) {
+				regVerifyOpen = true
+				await turnstileService.verify(c,token)
+			}
+
+			if (registerVerify === settingConst.registerVerify.COUNT) {
+				regVerifyOpen = await verifyRecordService.isOpenRegVerify(c, regVerifyCount);
+				if (regVerifyOpen) {
+					await turnstileService.verify(c,token)
+				}
+			}
+
+			const { salt, hash } = await saltHashUtils.hashPassword(password);
+
+			const userId = await userService.insert(c, { email, regKeyId,password: hash, salt, type: type || defType });
+
+			await accountService.insert(c, { userId: userId, email, name: emailUtils.getName(email) });
+
+			await userService.updateUserInfo(c, userId, true);
+
+
+			if (registerVerify === settingConst.registerVerify.COUNT && !regVerifyOpen) {
+				const row = await verifyRecordService.increaseRegCount(c);
+				return {regVerifyOpen: row.count >= regVerifyCount}
+			}
+
+		} catch (e) {
+			// 注册流程失败时回补兑换码次数（D1 不支持跨语句事务，扣减与建用户无法原子提交）
+			if (regKeyConsumed) {
+				await regKeyService.increaseCount(c, code, 1);
+			}
+			throw e;
+		}
 		return {regVerifyOpen}
 
 	},

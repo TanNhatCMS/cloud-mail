@@ -73,6 +73,7 @@
         <el-date-picker
             v-model="addForm.expireTime"
             type="date"
+            value-format="YYYY-MM-DD"
             :placeholder="$t('validUntil')"
         />
         <el-input-number v-model="addForm.count" :min="1" :max="99999" @keyup.enter="submit"/>
