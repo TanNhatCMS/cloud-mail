@@ -1,11 +1,27 @@
 import { parseHTML } from 'linkedom';
 import domainUtils from '../utils/domain-uitls';
 
+const DANGEROUS_TAGS = 'script, iframe, frame, frameset, object, embed, applet, form, input, button, textarea, select, base, meta, link';
+const URL_ATTRS = ['href', 'src', 'xlink:href', 'action', 'background', 'poster', 'data'];
+// 去除空白和控制字符后判断危险协议
+const UNSAFE_URL = /^[\s\u0000-\u001f]*(javascript|vbscript|data:text\/html)/i;
+
 export default function emailHtmlTemplate(html, domain) {
 
 	const { document } = parseHTML(html);
-	document.querySelectorAll('script').forEach(script => script.remove());
+	document.querySelectorAll(DANGEROUS_TAGS).forEach(node => node.remove());
+	document.querySelectorAll('*').forEach(node => {
+		for (const attr of [...node.attributes]) {
+			const name = attr.name.toLowerCase();
+			if (name.startsWith('on') || name === 'formaction' || name === 'srcdoc') {
+				node.removeAttribute(attr.name);
+			} else if (URL_ATTRS.includes(name) && UNSAFE_URL.test(attr.value)) {
+				node.removeAttribute(attr.name);
+			}
+		}
+	});
 	html = document.toString();
+	const nonce = crypto.randomUUID().replace(/-/g, '');
 	html = html.replace(/{{domain}}/g, domainUtils.toOssDomain(domain) + '/');
 	const safeHtmlJson = JSON.stringify(html).replace(/</g, '\\u003C');
 
@@ -14,6 +30,7 @@ export default function emailHtmlTemplate(html, domain) {
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <meta http-equiv='Content-Security-Policy' content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; img-src * data: blob:; font-src * data:; media-src *; base-uri 'none'; form-action 'none'">
     <style>
         * {
             box-sizing: border-box;
@@ -41,7 +58,7 @@ export default function emailHtmlTemplate(html, domain) {
         <div id='container' class='content-html'></div>
     </div>
 
-    <script>
+    <script nonce='${nonce}'>
 
         function renderHTML(html) {
             const container = document.getElementById('container');
@@ -90,7 +107,6 @@ export default function emailHtmlTemplate(html, domain) {
                         width: fit-content;
                         height: fit-content;
                         min-width: 100%;
-                        \${bodyStyle ? bodyStyle : ''} /* 注入 body 的 style */
                     }
 
                     img:not(table img) {
@@ -102,6 +118,11 @@ export default function emailHtmlTemplate(html, domain) {
                     \${cleanedHtml}
                 </div>
             \`;
+
+            // body 的 style 通过 cssText 应用, 避免注入
+            if (bodyStyle) {
+                shadowRoot.querySelector('.shadow-content').style.cssText += bodyStyle;
+            }
 
             // 自动缩放
             autoScale(shadowRoot, container);

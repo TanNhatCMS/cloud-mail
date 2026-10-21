@@ -1,9 +1,20 @@
+function escapeHtml(text) {
+	return String(text ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
 export default function emailTextTemplate(text) {
+	text = escapeHtml(text);
 	return `<!DOCTYPE html>
 <html lang='en' >
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <meta http-equiv='Content-Security-Policy' content="default-src 'none'; style-src 'unsafe-inline'">
     <style>
         html {
             margin: 0;
