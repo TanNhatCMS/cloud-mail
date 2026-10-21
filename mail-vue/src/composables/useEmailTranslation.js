@@ -66,7 +66,7 @@ export function useEmailTranslation(emailRef) {
 
   const resolvedLang = computed(() => {
     if (selectedLang.value === 'auto') {
-      return settingStore.lang === 'zh' ? 'zh' : 'en'
+      return ['zh', 'en', 'vi'].includes(settingStore.lang) ? settingStore.lang : 'en'
     }
     return selectedLang.value
   })

@@ -366,6 +366,7 @@ const en = {
     translationFollowUi: 'Follow interface language',
     translationLanguageZh: 'Simplified Chinese',
     translationLanguageEn: 'English',
+    translationLanguageVi: 'Vietnamese',
     translationShowOriginal: 'Show original',
     translationShowTranslated: 'Show translation',
     translationLoading: 'Translating…',

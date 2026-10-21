@@ -367,6 +367,7 @@ const vi = {
     translationFollowUi: 'Theo ngôn ngữ giao diện',
     translationLanguageZh: 'Tiếng Trung giản thể',
     translationLanguageEn: 'Tiếng Anh',
+    translationLanguageVi: 'Tiếng Việt',
     translationShowOriginal: 'Hiện bản gốc',
     translationShowTranslated: 'Hiện bản dịch',
     translationLoading: 'Đang dịch…',

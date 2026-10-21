@@ -366,6 +366,7 @@ const zh = {
     translationFollowUi: '跟随界面语言',
     translationLanguageZh: '简体中文',
     translationLanguageEn: 'English',
+    translationLanguageVi: '越南语',
     translationShowOriginal: '还原原文',
     translationShowTranslated: '查看译文',
     translationLoading: '正在翻译…',

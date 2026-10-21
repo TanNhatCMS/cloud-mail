@@ -9,6 +9,7 @@
       <el-option :label="$t('translationFollowUi')" value="auto"/>
       <el-option :label="$t('translationLanguageZh')" value="zh"/>
       <el-option :label="$t('translationLanguageEn')" value="en"/>
+      <el-option :label="$t('translationLanguageVi')" value="vi"/>
     </el-select>
 
     <el-button

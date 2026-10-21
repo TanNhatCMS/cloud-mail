@@ -35,7 +35,7 @@ export const t = (key, values) => i18next.t(key, values)
 // 因此在入口处就把语言固定下来，避免跨请求串语言。
 export const getT = (c) => {
 	const lang = c?.req?.header?.('accept-language')?.split('-')[0];
-	return i18next.getFixedT(lang === 'en' ? 'en' : 'zh');
+	return i18next.getFixedT(lang === 'en' || lang === 'vi' ? lang : 'zh');
 }
 
 export default i18next;

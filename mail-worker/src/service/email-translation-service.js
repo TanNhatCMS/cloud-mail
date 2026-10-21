@@ -32,6 +32,7 @@ const translationService = {
 		const target = String(lang || '').toLowerCase();
 		if (target === 'zh' || target === 'zh-cn' || target === 'zh-hans') return 'zh';
 		if (target === 'en' || target === 'en-us' || target === 'en-gb') return 'en';
+		if (target === 'vi' || target === 'vi-vn') return 'vi';
 		throw new BizError(getT(c)('translationLanguageUnsupported'), 400, 'translationLanguageUnsupported');
 	},
 

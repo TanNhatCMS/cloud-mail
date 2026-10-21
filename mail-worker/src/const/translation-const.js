@@ -3,7 +3,7 @@ const translationConst = {
 		ZH: 'zh',
 		EN: 'en'
 	},
-	SUPPORT_LANG: ['zh', 'en'],
+	SUPPORT_LANG: ['zh', 'en', 'vi'],
 	STATE: {
 		PENDING: 'pending',
 		RUNNING: 'running',

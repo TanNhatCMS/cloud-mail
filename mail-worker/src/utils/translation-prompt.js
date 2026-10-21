@@ -2,7 +2,8 @@ import translationConst from '../const/translation-const';
 
 const LANG_NAME = {
 	zh: 'Simplified Chinese',
-	en: 'English'
+	en: 'English',
+	vi: 'Vietnamese'
 };
 
 const translationPrompt = {
