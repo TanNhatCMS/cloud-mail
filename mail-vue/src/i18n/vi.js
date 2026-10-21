@@ -361,7 +361,30 @@ const vi = {
     oauthSetting: 'OAuth',
     clientId: 'Client ID',
     clientSecret: 'Client Secret',
-    notOwner: 'Email gốc không thuộc về bạn'
+    notOwner: 'Email gốc không thuộc về bạn',
+    translateEmail: 'Dịch email',
+    translationTarget: 'Ngôn ngữ đích',
+    translationFollowUi: 'Theo ngôn ngữ giao diện',
+    translationLanguageZh: 'Tiếng Trung giản thể',
+    translationLanguageEn: 'Tiếng Anh',
+    translationShowOriginal: 'Hiện bản gốc',
+    translationShowTranslated: 'Hiện bản dịch',
+    translationLoading: 'Đang dịch…',
+    translationProgress: 'Đã dịch {done}/{total} đoạn',
+    translationRetry: 'Thử lại',
+    translationNotice: 'Bản dịch AI, chỉ mang tính tham khảo',
+    translationFormatFallback: 'Không giữ được định dạng; đang hiển thị bản dịch văn bản thuần',
+    translationTimeout: 'Dịch quá thời gian chờ. Vui lòng thử lại sau',
+    translationFailed: 'Dịch thất bại. Vui lòng thử lại',
+    translationLoginExpired: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại',
+    translationQuotaExceeded: 'Hạn mức dịch AI hôm nay đã dùng hết',
+    translationRateLimited: 'Quá nhiều yêu cầu. Vui lòng thử lại sau',
+    translationTooLarge: 'Email vượt quá giới hạn dịch',
+    translationNoText: 'Không có nội dung email để dịch',
+    translationUnavailable: 'Tính năng dịch tạm thời không khả dụng',
+    translationForbidden: 'Cần có quyền dịch email',
+    translationNotFound: 'Không tìm thấy email hoặc email đã bị xóa',
+    translationSourceChanged: 'Nội dung email đã thay đổi. Vui lòng dịch lại'
 }
 
 export default vi
