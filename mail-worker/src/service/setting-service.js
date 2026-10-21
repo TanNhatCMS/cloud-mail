@@ -71,18 +71,31 @@ const settingService = {
 			throw new BizError('数据库未初始化 Database not initialized.');
 		}
 
-		let domainList = JSON.parse(c.env.domain);
+		if (!c.env.domain) {
+			throw new BizError(t('noDomainVariable'));
+		}
+
+		// Chấp nhận cả hai định dạng: chuỗi JSON '["a.com","b.com"]' (upstream mới)
+		// và giá trị trần 'a.com' (định dạng cũ / cấu hình trên Dashboard).
+		// Trước đây JSON.parse trần không có try/catch hứng, giá trị cũ làm
+		// mọi request văng SyntaxError thô ra giao diện.
+		let domainList;
+		try {
+			domainList = JSON.parse(c.env.domain);
+		} catch (error) {
+			domainList = c.env.domain;
+		}
 
 		if (typeof domainList === 'string') {
 			try {
 				domainList = JSON.parse(domainList)
 			} catch (error) {
-				throw new BizError(t('notJsonDomain'));
+				domainList = [domainList];
 			}
 		}
 
-		if (!c.env.domain) {
-			throw new BizError(t('noDomainVariable'));
+		if (!Array.isArray(domainList)) {
+			domainList = [domainList];
 		}
 
 		domainList = domainList.map(item => '@' + item);
