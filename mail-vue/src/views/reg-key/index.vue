@@ -224,8 +224,12 @@ function formatUserCreateTime(regKey) {
 
 }
 
+function toExpireUtc(expireTime) {
+  return dayjs(expireTime).add(1, 'day').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss')
+}
+
 function formatExpireTime(expireTime) {
-  const expireDate = tzDayjs(expireTime);
+  const expireDate = tzDayjs(expireTime).subtract(1, 'second');
   const currentYear = dayjs().year();
   const expireYear = expireDate.year();
 
@@ -362,7 +366,7 @@ function submit() {
   }
 
   addLoading.value = true
-  regKeyAdd(addForm).then(() => {
+  regKeyAdd({...addForm, expireTime: toExpireUtc(addForm.expireTime)}).then(() => {
     showAdd.value = false
     resetForm()
     ElMessage({

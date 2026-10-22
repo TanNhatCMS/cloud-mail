@@ -3,7 +3,7 @@ import regKey from '../entity/reg-key';
 import { inArray, like, eq, desc, sql, or, and, gt } from 'drizzle-orm';
 import roleService from './role-service';
 import BizError from '../error/biz-error';
-import { formatDetailDate, toUtc } from '../utils/date-uitil';
+import { toUtc } from '../utils/date-uitil';
 import userService from './user-service';
 import { t } from '../i18n/i18n.js';
 
@@ -31,14 +31,16 @@ const regKeyService = {
 			throw new BizError(t('isExistRegKye'));
 		}
 
-		const roleRow = roleService.selectById(c, roleId);
+		const roleRow = await roleService.selectById(c, roleId);
 		if (!roleRow) {
 			throw new BizError(t('roleNotExist'));
 		}
 
-		// 以 Asia/Shanghai 的日历日期为准归一化过期时间：
-		// 管理员在浏览器本地时区选择的日期不应因 Worker(UTC) 解析而提前一天失效
-		expireTime = formatDetailDate(toUtc(expireTime).tz('Asia/Shanghai').startOf('day').utc())
+		const expireUtc = toUtc(expireTime)
+		if (!expireUtc.isValid()) {
+			throw new BizError(t('emptyRegKeyExpire'));
+		}
+		expireTime = expireUtc.format('YYYY-MM-DD HH:mm:ss')
 
 		await orm(c).insert(regKey).values({code,roleId,count,userId,expireTime}).run();
 	},
@@ -50,8 +52,8 @@ const regKeyService = {
 	},
 
 	async clearNotUse(c) {
-		let now = formatDetailDate(toUtc().tz('Asia/Shanghai').startOf('day'))
-		await orm(c).delete(regKey).where(or(eq(regKey.count, 0),sql`datetime(${regKey.expireTime}, '+8 hours') < datetime(${now})`)).run();
+		const now = toUtc().format('YYYY-MM-DD HH:mm:ss')
+		await orm(c).delete(regKey).where(or(eq(regKey.count, 0), sql`datetime(${regKey.expireTime}) <= datetime(${now})`)).run();
 	},
 
 	selectByCode(c, code) {
@@ -70,16 +72,16 @@ const regKeyService = {
 		const regKeyList = await query.orderBy(desc(regKey.regKeyId)).all();
 		const roleList = await roleService.roleSelectUse(c);
 
-		const today = toUtc().tz('Asia/Shanghai').startOf('day')
+		const now = toUtc()
 
 		regKeyList.forEach(regKeyRow => {
 
 			const index = roleList.findIndex(roleRow => roleRow.roleId === regKeyRow.roleId)
 			regKeyRow.roleName = index > -1 ? roleList[index].name : ''
 
-			const expireTime = toUtc(regKeyRow.expireTime).tz('Asia/Shanghai').startOf('day');
+			const expireTime = toUtc(regKeyRow.expireTime);
 
-			if (expireTime.isBefore(today)) {
+			if (!expireTime.isAfter(now)) {
 				regKeyRow.expireTime = null
 			}
 		})
@@ -87,23 +89,19 @@ const regKeyService = {
 		return regKeyList;
 	},
 
-	async reduceCount(c, code, count) {
-		// 原子条件扣减：仅当剩余次数大于 0 时才扣减；返回更新后的行，
-		// 未返回行表示兑换码已被并发耗尽，调用方应拒绝注册
-		return await orm(c).update(regKey).set({
-			count: sql`${regKey.count}
-	  -
-	  ${count}`
-		}).where(and(eq(regKey.code, code), gt(regKey.count, 0))).returning().get();
+	async consumeCount(c, code) {
+		const rows = await orm(c).update(regKey)
+			.set({ count: sql`${regKey.count} - 1` })
+			.where(and(eq(regKey.code, code), gt(regKey.count, 0)))
+			.returning({ regKeyId: regKey.regKeyId });
+		return rows.length > 0;
 	},
 
-	async increaseCount(c, code, count) {
-		// 扣减后注册流程失败时回补兑换码次数
-		await orm(c).update(regKey).set({
-			count: sql`${regKey.count}
-	  +
-	  ${count}`
-		}).where(eq(regKey.code, code)).run();
+	async restoreCount(c, code) {
+		await orm(c).update(regKey)
+			.set({ count: sql`${regKey.count} + 1` })
+			.where(eq(regKey.code, code))
+			.run();
 	},
 
 	async history(c, params) {

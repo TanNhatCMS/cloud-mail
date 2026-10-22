@@ -45,6 +45,7 @@ const dbInit = {
 		await this.v3_3DB(c);
 		await this.v3_4DB(c);
 		const failed = await this.v3_5DB(c);
+		await this.v3_6DB(c);
 		await settingService.refresh(c);
 		if (failed.length > 0) {
 			return '❌ ' + failed.join('; ');
@@ -115,6 +116,14 @@ const dbInit = {
 				}
 				console.warn(`设置列已由并发迁移添加：${name}`);
 			}
+		}
+	},
+
+	async v3_6DB(c) {
+		try {
+			await c.env.db.prepare(`ALTER TABLE email ADD COLUMN sender_email TEXT NOT NULL DEFAULT '';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
 		}
 	},
 
