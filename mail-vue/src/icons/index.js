@@ -189,6 +189,9 @@ addCollection({
     "icons": {
         "dot-grid-fill": {
             "body": "<path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"M4 2a2 2 0 1 1 0 4a2 2 0 0 1 0-4m8 0a2 2 0 1 1 0 4a2 2 0 0 1 0-4m10 2a2 2 0 1 0-4 0a2 2 0 0 0 4 0M4 10a2 2 0 1 1 0 4a2 2 0 0 1 0-4m10 2a2 2 0 1 0-4 0a2 2 0 0 0 4 0m6-2a2 2 0 1 1 0 4a2 2 0 0 1 0-4M6 20a2 2 0 1 0-4 0a2 2 0 0 0 4 0m6-2a2 2 0 1 1 0 4a2 2 0 0 1 0-4m10 2a2 2 0 1 0-4 0a2 2 0 0 0 4 0\" clip-rule=\"evenodd\"/>"
+        },
+        "search": {
+            "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"2\" d=\"m21 21l-4.486-4.494M19 10.5a8.5 8.5 0 1 1-17 0a8.5 8.5 0 0 1 17 0Z\"/>"
         }
     }
 })
