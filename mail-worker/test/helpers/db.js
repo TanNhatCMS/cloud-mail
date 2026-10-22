@@ -74,6 +74,11 @@ export async function runSyncClipboardMigration(targetEnv = env) {
 	await dbInit.v3_4DB(makeCtx(targetEnv));
 }
 
+/** 在旧库上执行 3.4.0 新增迁移（email.sender_email 列） */
+export async function runSenderEmailMigration(targetEnv = env) {
+	await dbInit.v3_6DB(makeCtx(targetEnv));
+}
+
 export async function settingColumnNames(targetEnv = env) {
 	const { results } = await targetEnv.db.prepare(`SELECT name FROM pragma_table_info('setting')`).all();
 	return (results || []).map(row => row.name);

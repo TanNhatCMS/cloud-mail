@@ -2,7 +2,7 @@ import { env, fetchMock } from 'cloudflare:test';
 import { beforeAll, afterEach, beforeEach, describe, it, expect } from 'vitest';
 import { email as handleEmail } from '../src/email/email';
 import { emailConst, settingConst } from '../src/const/entity-const';
-import { patchSetting, readSettingRow, refreshSetting, runLegacySchema, runSyncClipboardMigration } from './helpers/db';
+import { patchSetting, readSettingRow, refreshSetting, runLegacySchema, runSenderEmailMigration, runSyncClipboardMigration } from './helpers/db';
 
 const ORIGIN = 'https://sync.example.com';
 const PROFILE_PATH = '/SyncClipboard.json';
@@ -150,6 +150,7 @@ beforeAll(async () => {
 	fetchMock.disableNetConnect();
 	await runLegacySchema(env);
 	await runSyncClipboardMigration(env);
+	await runSenderEmailMigration(env);
 
 	// 管理员用户 + 已注册收件箱
 	await env.db.prepare(`INSERT INTO user (user_id, email, type, password, salt, status, is_del) VALUES (1, 'admin@example.com', 1, 'x', 'y', 0, 0)`).run();
