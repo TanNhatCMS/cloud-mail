@@ -57,6 +57,8 @@ Chỉ với một tên miền, bạn có thể tạo nhiều địa chỉ email 
 
 - **📡 API mở**: Hỗ trợ tạo người dùng hàng loạt qua API và truy vấn thư theo nhiều điều kiện.
 
+- **🤖 MCP Server cho AI Agent**: Kèm sẵn một MCP server (stdio) để trợ lý AI có thể liệt kê, tìm kiếm, đọc và gửi email thông qua REST API — xem mục [MCP Server](#mcp-server-ai-agent) bên dưới.
+
 - **🔢 Nhận diện Mã xác thực (OTP)**: Tự động phát hiện mã xác minh qua Workers AI.
 
 - **📈 Trực quan hóa dữ liệu**: Sử dụng ECharts để hiển thị biểu đồ phân tích dữ liệu hệ thống, biểu đồ tăng trưởng người dùng & email.
@@ -121,8 +123,71 @@ cloud-mail
 │   │   ├── main.js			    # Điểm khởi chạy JS
 │   │   └── style.css			# Stylesheet toàn cục
 │   ├── package.json			# Khai báo thư viện & dependencies
-└── └── env.release				# Cấu hình môi trường build
+│   └── env.release				# Cấu hình môi trường build
+│
+└── mcp-server				    # MCP server (stdio) cho AI agent — xem mục MCP Server bên dưới
+    ├── src					    # Mã nguồn TypeScript
+    ├── test					# Kiểm thử (Vitest)
+    ├── package.json			# Khai báo thư viện & dependencies
+    └── README.md				# Tài liệu chi tiết (tiếng Anh)
 ```
+
+## MCP Server (AI Agent)
+
+Thư mục `mcp-server/` chứa một [MCP](https://modelcontextprotocol.io/) server dạng **stdio**, cho phép AI agent (ví dụ Claude, Cursor...) làm việc với hộp thư cloud-mail thông qua REST API: liệt kê, tìm kiếm, đọc và gửi email. Server đăng nhập **một lần bằng tài khoản quản trị viên (admin)** nên mọi kiểm tra phân quyền RBAC phía backend đều được thông qua với một thông tin đăng nhập duy nhất (quyết định thiết kế của bản v1).
+
+### Các công cụ (tools) được cung cấp
+
+| Tool | Mô tả |
+|---|---|
+| `list_accounts` | Liệt kê các tài khoản hộp thư (địa chỉ email) mà agent có thể dùng. |
+| `list_emails` | Liệt kê email trong một hộp thư (lấy `accountId` từ `list_accounts` trước). |
+| `latest_emails` | Lấy các email đã nhận mới hơn một `emailId` cho trước (phục vụ polling). |
+| `search_all_emails` | Tìm kiếm trên toàn bộ email của mọi người dùng (quyền admin) kèm bộ lọc. |
+| `get_attachments` | Liệt kê các tệp đính kèm có thể tải xuống của một email. |
+| `send_email` | Gửi email từ một trong các tài khoản hộp thư. |
+| `mark_read` | Đánh dấu email là đã đọc. |
+
+> **Lưu ý phía backend:** `mark_read` gọi một endpoint của backend cloud-mail mà hiện tại câu lệnh cập nhật cơ sở dữ liệu được dựng nhưng chưa được thực thi (`.run()`), nên tool luôn trả về thành công dù trạng thái đã đọc có thể chưa được lưu thật. Đây là giới hạn của backend, không phải lỗi của MCP server.
+
+### Cài đặt & cấu hình
+
+```bash
+cd mcp-server
+npm install
+npm run build   # biên dịch src/ thành dist/, điểm chạy là dist/index.js
+```
+
+Tạo file `.env` trong thư mục `mcp-server/` từ mẫu `.env.example` (file này đã được gitignore, không chứa trong mã nguồn):
+
+```env
+CLOUD_MAIL_URL=https://webmail.example.com   # địa chỉ bản cloud-mail đã triển khai
+CLOUD_MAIL_USER=admin@example.com            # email đăng nhập của tài khoản admin
+CLOUD_MAIL_PASSWORD=********                 # mật khẩu tài khoản admin
+```
+
+Vì thông tin đăng nhập được đọc từ file `.env` nằm cạnh server, cấu hình phía MCP host chỉ cần lệnh chạy — **không phải để lộ mật khẩu trong cấu hình host**:
+
+```json
+{
+  "mcpServers": {
+    "cloud-mail": {
+      "command": "node",
+      "args": ["<đường-dẫn-tuyệt-đối>/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+Chạy thử độc lập bằng `npm start`, hoặc kiểm tra kết nối đầu-cuối bằng `npm run smoke` (đăng nhập thật và in kết quả `list_accounts` + `list_emails`; không chạy trong CI).
+
+### Phạm vi bản v1
+
+- Chỉ hỗ trợ truyền tải **stdio** — chưa có remote/OAuth transport.
+- Gửi email chưa hỗ trợ đính kèm tệp; `get_attachments` mới chỉ liệt kê, chưa tải nội dung tệp.
+- Chưa có vai trò RBAC riêng cho agent (dùng chung tài khoản admin).
+
+Tài liệu đầy đủ bằng tiếng Anh: [mcp-server/README.md](mcp-server/README.md).
 
 ## Ủng hộ tác giả (Sponsor)
 
